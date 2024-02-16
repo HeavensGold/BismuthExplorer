@@ -13,7 +13,8 @@ from bs4 import BeautifulSoup
 from threading import Lock
 from decimal import *
 
-from flask import Flask, render_template, session, request, Markup
+from flask import Flask, render_template, session, request
+from markupsafe import Markup
 from flask_socketio import SocketIO, emit, join_room, leave_room, \
 	close_room, rooms, disconnect
 
@@ -258,7 +259,7 @@ def cmc_alt(message):
 
 	with open('dump_cmc.txt') as json_file:
 		x = json.load(json_file)
-		socketio.emit('my_info',{'btc': x['btc'], 'usd': x['usd'], 'fiat': x['fiat'], 'toc': x['toc'], 'mess': message},namespace='/test',broadcast=True)
+		socketio.emit('my_info',{'bnb': x['bnb'], 'usd': x['usd'], 'marketcap_usd': x['marketcap_usd'], 'toc': x['toc'], 'mess': message},namespace='/test')
 
 	try:
 		with open('price_info.txt') as json_file:
@@ -280,18 +281,25 @@ def get_cmc_info(alt_curr, testmess, mystate, this_dev_state):
 	if mystate:
 	
 		try:
-			t = "https://api.coingecko.com/api/v3/coins/bismuth?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false"
+			#t = "https://api.coingecko.com/api/v3/coins/bismuth?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false"
+			t = "https://api.geckoterminal.com/api/v2/networks/bsc/pools/0x731B8244F818FD488d9DC516Edd976A96459Ae59"
 			r = requests.get(t)
 			x = r.text
 			y = json.loads(x)
 			
 			try:
+				'''
 				c_btc = "{:.8f}".format(float(y['market_data']['current_price']['btc']))
 				c_usd = "{:.3f}".format(float(y['market_data']['current_price']['usd']))
 				c_cus = "{:.3f}".format(float(y['market_data']['current_price'][ch]))
+				'''
+				c_bnb = "{:.8f}".format(float(y['data']['attributes']['base_token_price_native_currency']))
+				c_usd = "{:.4f}".format(float(y['data']['attributes']['base_token_price_usd']))
+				c_cus = "{:.2f}".format(float(y['data']['attributes']['market_cap_usd']))
+
 				app_log.info("Coingecko Price Thread: Updated OK")
-				socketio.emit('my_info',{'btc': c_btc, 'usd': c_usd, 'fiat': c_cus, 'toc': alt_curr, 'mess': testmess},namespace='/test',broadcast=True)
-				cmc = {'btc': c_btc, 'usd': c_usd, 'fiat': c_cus, 'toc': alt_curr, 'mess': testmess}
+				socketio.emit('my_info',{'bnb': c_bnb, 'usd': c_usd, 'marketcap_usd': c_cus, 'toc': alt_curr, 'mess': testmess},namespace='/test')
+				cmc = {'bnb': c_bnb, 'usd': c_usd, 'marketcap_usd': c_cus, 'toc': alt_curr, 'mess': testmess}
 				
 				with open('dump_cmc.txt', 'w') as outfile:
 					json.dump(cmc, outfile)
@@ -330,14 +338,14 @@ def get_status_info():
 		w_uptime = st['uptime']
 		n_up = toolsp.display_time(int(w_uptime),4)
 		st['uptime'] = n_up
-		socketio.emit('my_status',st,namespace='/test',broadcast=True)
+		socketio.emit('my_status',st,namespace='/test')
 		app_log.info("Status Thread: OK")
 	
 	except requests.exceptions.RequestException as e:
 		w_uptime = "0"
 		n_up = toolsp.display_time(int(w_uptime),4)
 		st['uptime'] = n_up
-		socketio.emit('my_status',st,namespace='/test',broadcast=True)
+		socketio.emit('my_status',st,namespace='/test')
 		app_log.error("Status Thread: Error {}".format(e))
 
 		
@@ -363,7 +371,7 @@ def get_block_info(last_block):
 				blminer = rawminer
 			bldiff = d['difficulty']
 			x = toolsp.getcirc()
-			socketio.emit('my_latest',{'height': blheight, 'miner': blminer, 'diff': bldiff, 'bltime': bltm, 'btotal': x[0], 'bcirc': x[1]},namespace='/test',broadcast=True)
+			socketio.emit('my_latest',{'height': blheight, 'miner': blminer, 'diff': bldiff, 'bltime': bltm, 'btotal': x[0], 'bcirc': x[1]},namespace='/test')
 			app_log.info("Block Thread: New Block Seen {}".format(blheight))
 			r_block = blheight
 	
@@ -386,7 +394,7 @@ def get_message_info():
 		if ann != "No announcement":
 			n_ann = True
 			c_toast = "Dev Team Announcement: {}".format(ann)
-			socketio.emit("my_toast", {"c_toast": c_toast}, namespace="/test", broadcast=True)
+			socketio.emit("my_toast", {"c_toast": c_toast}, namespace="/test")
 			app_log.warning(c_toast)
 		else:
 			app_log.info("No Announcements")
@@ -432,7 +440,7 @@ def get_wallet_servers():
 	except:
 		w_num = '0'
 		
-	socketio.emit('my_w_servers',{'active': str(w_num),'list': live_x},namespace='/test',broadcast=True)
+	socketio.emit('my_w_servers',{'active': str(w_num),'list': live_x},namespace='/test')
 	app_log.info("Wallet Servers Checked")
 	
 	return x
@@ -449,20 +457,20 @@ def get_mem_tx_no():
 		mempool = []
 		app_log.warning("Error checking mempool transactions")
 	
-	socketio.emit('my_mem',{'mem': num_tx},namespace='/test',broadcast=True)
+	socketio.emit('my_mem',{'mem': num_tx},namespace='/test')
 
 	if len(mempool) != 0:
 		c_toast = "There are {} transactions in local mempool".format(num_tx)
 		mem_list = toolsp.mem_html(mempool)
-		socketio.emit("update", {"data": mem_list}, namespace="/mem", broadcast=True)
-		socketio.emit("my_toast", {"c_toast": c_toast}, namespace="/test", broadcast=True)
+		socketio.emit("update", {"data": mem_list}, namespace="/mem")
+		socketio.emit("my_toast", {"c_toast": c_toast}, namespace="/test")
 		#print(c_toast)
 	else:
 		b = ""
 		c_toast = "Nothing in the local mempool"
 		mem_list = toolsp.mem_html(b)
-		socketio.emit("update", {"data": mem_list}, namespace="/mem", broadcast=True)
-		#socketio.emit("my_toast", {"c_toast": c_toast}, namespace="/test", broadcast=True)
+		socketio.emit("update", {"data": mem_list}, namespace="/mem")
+		#socketio.emit("my_toast", {"c_toast": c_toast}, namespace="/test")
 		#print(c_toast)
 	
 	app_log.info(c_toast)
@@ -501,7 +509,7 @@ def main_info():
 		# Refresh tx list
 		if current_block != last_block:
 			txlist50 = get_50()
-			socketio.emit('my_transactions', {'data': txlist50},namespace='/test',broadcast=True)
+			socketio.emit('my_transactions', {'data': txlist50},namespace='/test')
 			app_log.info("Transaction List Refreshed")
 			last_block = current_block
 		else:
@@ -2014,8 +2022,7 @@ def test_con_status(message):
 def test_broadcast_message(message):
 	session['receive_count'] = session.get('receive_count', 0) + 1
 	emit('my_response',
-		 {'data': message['data'], 'count': session['receive_count']},
-		 broadcast=True)
+		 {'data': message['data'], 'count': session['receive_count']},)
 
 
 @socketio.on('join', namespace='/test')
@@ -2067,7 +2074,7 @@ def ping_pong():
 
 
 @socketio.on('connect', namespace='/test')
-def test_connect():
+def test_connect(*args):
 	global cmc_thread
 	get_status_info()
 
@@ -2078,7 +2085,7 @@ def test_connect():
 		else:
 			with open('dump_cmc.txt') as json_file:
 				x = json.load(json_file)
-				emit('my_info',{'btc': x['btc'], 'usd': x['usd'], 'fiat': x['fiat'], 'toc': x['toc'], 'mess': x['mess']},namespace='/test',broadcast=True)
+				emit('my_info',{'bnb': x['bnb'], 'usd': x['usd'], 'marketcap_usd': x['marketcap_usd'], 'toc': x['toc'], 'mess': x['mess']},namespace='/test')
 			app_log.info("New Connection {}".format(request.sid))
 			x = get_wallet_servers()
 			

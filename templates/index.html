@@ -59,10 +59,10 @@
 
             // Event handler for sent information data.
             socket.on('my_info', function(msg) {
- 				$('#curr_price').text(msg.btc);
+ 				$('#curr_price').text(msg.bnb);
  				$('#usd_price').text(msg.usd);
-				$('#ticker').text(msg.toc);
-				$('#fiat_price').text(msg.fiat);
+				//$('#ticker').text(msg.toc);
+				$('#marketcap_usd').text(msg.marketcap_usd);
 				$('#sys_mess').text(msg.mess);
             });
 			
@@ -136,14 +136,15 @@
               <ul class="list-unstyled mt-0 mb-0">
 			  <li><b>Circulating: </b><span id="circbis">Please wait for next block...</span></li>
 			  <li><b>Total Supply: </b><span id="totalbis">updating...</span></li>
-              <li><b>Price (BTC): </b><span id="curr_price">updating...</span></li>
+              <li><b>Price (BNB): </b><span id="curr_price">updating...</span></li>
               <li><b>Price (USD): </b><span id="usd_price">updating...</span></li>
-              <li><b>Price (<span id="ticker">...</span>): </b><span id="fiat_price">updating...</span></li>
+         <!--     <li><b>Price (<span id="ticker">...</span>): </b><span id="fiat_price">updating...</span></li>   -->
+              <li><b>MarketCap(USD): </b><span id="marketcap_usd">updating...</span></li>
 			  <li><b>Active Wallet Servers: </b><a id="pop_servers" class="link" href="/wservers"><span id="a_wallet_s">updating...</span></a></li>
 			  <li style="color: #339933;"><b><span id="sys_mess"></span></b></li>
             </ul>
           </div>
-		  <div style="font-size: 80%" class="card-footer text-muted">Prices courtesy of <a class="link" href="https://www.coingecko.com/en/coins/bismuth">CoinGecko</a></div>
+		  <div style="font-size: 80%" class="card-footer text-muted">Prices courtesy of <a class="link" href="https://www.geckoterminal.com/bsc/pools/0x731b8244f818fd488d9dc516edd976a96459ae59?utm_source=coingecko&utm_medium=referral&utm_campaign=searchresults">CoinGecko(PancakeSwap V2)</a></div>
         </div>
         <div class="card mb-4 box-shadow">
           <div class="card-header">
